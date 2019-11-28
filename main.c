@@ -4,6 +4,8 @@
 #include <string.h>
 #include <unistd.h>
 
+int TEST = 0;
+
 //Choose how many processes to create
 int SIZE = 100;
 //Choose ready queue size
@@ -20,8 +22,24 @@ typedef struct{
     vProcess * process;
 } circularQueue;
 
+// Empty process def
 static vProcess nullProcess = {-1, -1, -1};
 
+//Global Job List
+circularQueue * globalJobList;
+circularQueue * globalReadyList;
+
+//Thread info
+pthread_t thread1, thread2;
+pthread_mutex_t lock;
+
+void testMessage(char * text){
+    if (TEST){
+        printf("\033[0;34m");
+        printf("[TESTING]: %s\n",text);
+        printf("\033[0m");
+    }
+}
 
 /** Queue Related Operations */
 int isFull(circularQueue * queue, int size){
@@ -104,19 +122,40 @@ vProcess * createProcesses(){
     return list;
 }
 
-/** Printing Scheduler Operations */
-void printList(vProcess * list, char * pName){
-    int size = (int) sizeof(list) / sizeof(list[0]);
-    for(int i = 0; i < SIZE; i = i + 1){
-        printf("%s [Process id: %02d, Execution Time: %02d, Arival Time: %02d]\t", pName, list[i].id, list[i].runTime, list[i].arival);
-        if ((i+1) % 2 == 0 || i == (SIZE - 1)){
-            printf("\n");
+//Validating if processes were created by ID for SIZE
+void validateProcessesCreation(vProcess* list){
+    
+    printf("\nValidating\n");
+    for (int i = 0; i < SIZE; i = i + 1)
+    {
+        if (list[i].id == i && list[i].runTime < 31 && list[i].runTime > 0){
+            printf(".");
+        } else {
+        printf("\nError: Unexpected Values!\n id: %d \truntime:%d \tExpected: %d\n", list[i].id, list[i].runTime, i);
+            exit(EXIT_FAILURE);
         }
     }
-    printf("----------------\n");
+    printf("\nAll Good! \n\n");
 }
 
-void printReadyQueue(circularQueue * queue, char * pName){
+/** Printing Scheduler Operations */
+void printList(vProcess * list, char * pName){
+    if (TEST){
+        printf("\033[0;34m");
+        int size = (int) sizeof(list) / sizeof(list[0]);
+        for(int i = 0; i < SIZE; i = i + 1){
+            printf("%s [Process id: %02d, Execution Time: %02d, Arival Time: %02d]\t", pName, list[i].id, list[i].runTime, list[i].arival);
+            if ((i+1) % 2 == 0 || i == (SIZE - 1)){
+                printf("\n");
+            }
+        }
+        printf("----------------\n");
+        sleep(10);
+        printf("\033[0m");
+    }
+}
+
+void printQueue(circularQueue * queue, char * pName){
     if (queue->rear == -1){
         printf("%s: Empty!\n", pName);
     } else {
@@ -139,19 +178,10 @@ void printReadyQueue(circularQueue * queue, char * pName){
  * we copy the content of the list in to a secondary local list. Then we attempt
  * to sort the list by the arrival time.
  */
-void FCFS(vProcess * processList){
+void * FCFS(void * list){
+    pthread_mutex_lock(&lock); 
     // List of jobs
-    vProcess * sortedList = malloc(sizeof(vProcess) * SIZE);
-
-    // Ready queue
-    circularQueue readyList = {-1, (malloc(sizeof(vProcess) * RSIZE))};
-    // Job queue
-    circularQueue jobList = {-1 , (malloc(sizeof(vProcess) * SIZE))};
-
-    // Copy the content of processList to sortedList to avoid memory leakage!
-    for(int i = 0; i < SIZE; i = i + 1){
-        sortedList[i] = processList[i];
-    }
+    vProcess * sortedList = (struct vProcess *) list;
 
     // Sort the priority by arrival time using insertion sort algorithem. O(n^2)
     int j;
@@ -159,25 +189,17 @@ void FCFS(vProcess * processList){
     for (int i = 1; i < SIZE; i = i + 1) { 
         key = sortedList[i]; 
         j = i - 1; 
-  
-        /* Move elements of arr[0..i-1], that are 
-          greater than key, to one position ahead 
-          of their current position */
         while (j >= 0 && sortedList[j].arival > key.arival) { 
             sortedList[j + 1] = sortedList[j]; 
             j = j - 1; 
         } 
         sortedList[j + 1] = key;
     }
-    // Printing out the jobQueue
-    printf("List of Processes to be queued:\n");
-    printList(sortedList, "[LTS] Process");
 
-    for(int i = 0; i < 8; i++){
-        printf(".");
-        sleep(1);
-        if (i == 7) printf("\n");
-    }
+    printf("Sorting DONE\n");
+    printList(list, "SORTED LIST");
+
+    pthread_mutex_unlock(&lock);
 
     //Time initial to 0
     //Each itteration of while loop incriments the time by 1
@@ -187,24 +209,28 @@ void FCFS(vProcess * processList){
 
     do {
         system("@cls||clear");
-        printf("Time elapsed: %03d\t Processes arrived: %02d\t Jobs Stored: %02d \n\n", time, pCount - 1, jobList.rear + 1);
-        while (!isFull(&readyList, RSIZE) && !isEmpty(&jobList)){
-            int state_0 = enQueue(&readyList, jobList.process[0], RSIZE);
+        printf("Time elapsed: %03d\t Processes arrived: %02d\t Jobs Stored: %02d \n\n", time, pCount - 1, globalJobList->rear + 1);
+        pthread_mutex_lock(&lock); 
+        testMessage("LOCKING MUTEX");
+        while (!isFull(globalReadyList, RSIZE) && !isEmpty(globalJobList)){
+            int state_0 = enQueue(globalReadyList, globalJobList->process[0], RSIZE);
             if (state_0 != 1){
                 printf("[Failed] Could not add process to read queue.\n\n");
                 exit(EXIT_FAILURE);
             }
             else {
-                int state_0_1 = deQueue(&jobList, jobList.process[0].id, SIZE);
+                int state_0_1 = deQueue(globalJobList, globalJobList->process[0].id, SIZE);
                 if (state_0 != 1){
                     printf("[Failed] Could not remove a process from job queue.\n\n");
                     exit(EXIT_FAILURE);
                 }
             }
         }
+        testMessage("UNLOCKING MUTEX");
+        pthread_mutex_unlock(&lock); 
 
-        while (!isFull(&jobList, SIZE) && sortedList[pCount].arival == time){
-            int state_1 = enQueue(&jobList, sortedList[pCount], SIZE);
+        while (!isFull(globalJobList, SIZE) && sortedList[pCount].arival == time){
+            int state_1 = enQueue(globalJobList, sortedList[pCount], SIZE);
             if (state_1 != 1){
                 printf("[Failed] Could not add process.\n\n");
                 exit(EXIT_FAILURE);
@@ -213,46 +239,41 @@ void FCFS(vProcess * processList){
             }
         }
         
-        printReadyQueue(&jobList, "[LTS] Job Queue");
-        printReadyQueue(&readyList, "[LTS] Ready Queue");
+        printQueue(globalJobList, "[LTS] Job Queue");
+        printQueue(globalReadyList, "[LTS] Ready Queue");
 
-        for(int i = 0; i < (readyList.rear + 1); i++){
-            readyList.process[i].runTime--;
-            if (readyList.process[i].runTime <= 0){
-                int state_2 = deQueue(&readyList, readyList.process[i].id, RSIZE);
-                if (state_2 != 1){
-                printf("[Failed] Could not remove process.\n\n");
-                exit(EXIT_FAILURE);
-                }
-            }
-        }
         // increase time
         time ++;
         sleep(1);
-        if (isEmpty(&jobList) && isEmpty(&readyList) && time > 100){
+        if (isEmpty(globalJobList) && isEmpty(globalReadyList) && time > 100){
             condition  = 0;
         }
     } while (condition);
 }
 
+void * SJF(){
+    do {
+        
+    } while (1);
+}
+
 int main(int argc, char **argv){
-    vProcess * list;
-    pthread_t thread1, thread2;
-
-    if (!strcmp(argv[1], "--help") || !strcmp(argv[1], "-h")){
-        printf("CPU Scheduling design by Mehrzad B.\n");
-        printf("For more info please visit: https://github.com/DamonNomadJr/EECS3221-CPU-Scheduling\n");
-        printf("Arguments:\n");
-        printf("\t--help | -h:\n");
-        printf("\t\tOpens help\n\n");
-        printf("\t--jobs | -j [value in int]:\n");
-        printf("\t\tChange the number of jobs to be processed. Default 100\n\n");
-        printf("\t--ready | -r [value in int]:\n");
-        printf("\t\tChange the # of processes to execute at a time. Default 5\n\n");
-        return 0;
-    }
-
-    if (argc > 0){
+    
+    if (argc > 1){
+        if (!strcmp(argv[1], "--help") || !strcmp(argv[1], "-h")){
+            printf("CPU Scheduling design by Mehrzad B.\n");
+            printf("For more info please visit: https://github.com/DamonNomadJr/EECS3221-CPU-Scheduling\n");
+            printf("Arguments:\n");
+            printf("\t--help | -h:\n");
+            printf("\t\tOpens help\n\n");
+            printf("\t--jobs | -j [value in int]:\n");
+            printf("\t\tChange the number of jobs to be processed. Default 100\n\n");
+            printf("\t--ready | -r [value in int]:\n");
+            printf("\t\tChange the # of processes to execute at a time. Default 5\n\n");
+            printf("\t--test | -t:\n");
+            printf("\t\tRuns with test messages\n\n");
+            return 0;
+        }
         for (int i = 1; i < argc; i++){
             printf("Consumed %s\n", argv[i]);
             if(!strcmp(argv[i], "--ready") || !strcmp(argv[i], "-r")){
@@ -271,22 +292,25 @@ int main(int argc, char **argv){
                     exit(EXIT_FAILURE);
                 }
             }
+            else if(!strcmp(argv[i], "--test") || !strcmp(argv[i], "-t")){
+                TEST = 1;
+            }
         }
     }
 
     printf("Creating %d jobs and %d is Ready size\n", SIZE, RSIZE);
+    vProcess * list = createProcesses();
 
-    list = createProcesses();
-    printf("\nValidating\n");
-    for (int i = 0; i < SIZE; i = i + 1)
-    {
-        if (list[i].id == i && list[i].runTime < 31 && list[i].runTime > 0){
-            printf(".");
-        } else {
-        printf("\nError: Unexpected Values!\n id: %02d \truntime:%02d \tExpected: %02d\n", list[i].id, list[i].runTime, i);
-            exit(EXIT_FAILURE);
-        }
-    }
+    //Validating if processes were created by ID for SIZE
+    validateProcessesCreation(list);
+    circularQueue tempR = {-1, malloc(sizeof(vProcess ) * RSIZE)};
+    globalReadyList = &tempR;
+    circularQueue tempJ = {-1, malloc(sizeof(vProcess ) * SIZE)};
+    globalJobList = &tempJ;
+
+    pthread_create(&thread1, NULL, FCFS, list);
+    pthread_join(thread1, NULL);
+    // pthread_create(&tid, NULL, FCFS, (void *)list);
+    // pthread_join(tid, NULL);
     // int err = pthread_create(&thread1, NULL, FCFS, (void*) list);
-    printf("\nAll Good! \n\n");
 }
