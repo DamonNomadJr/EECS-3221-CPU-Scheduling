@@ -15,14 +15,16 @@ typedef struct{
 } vProcess;
 
 typedef struct{
-    int front;
     int rear;
     vProcess * process;
 } circularQueue;
 
+static vProcess nullProcess = {-1, -1};
+
+
+/** Queue Related Operations */
 int isFull(circularQueue * queue){
-    printf("Is Full %d, %d\n", queue->front, queue->rear);
-    if( (queue->front == queue->rear + 1) || (queue->front == 0 && queue->rear == RSIZE-1)) {
+    if( queue->rear == RSIZE-1) {
         // It's full
         return 1;
     } else {
@@ -32,7 +34,7 @@ int isFull(circularQueue * queue){
 }
 
 int isEmpty(circularQueue * queue){
-    if(queue->front == -1) { 
+    if(queue->rear == -1) { 
         // It's empty
         return 1;
     } else {
@@ -46,17 +48,14 @@ int enQueue(circularQueue * queue, vProcess process){
         // Couldn't add the element
         return 0;
     } else {
-        if (queue->front == -1) {
-            queue->front = 0;
-        }
-        queue->rear = (queue->rear + 1) % RSIZE;
+        queue->rear = queue->rear + 1;
         queue->process[queue->rear] = process;
         // Added the element
         return 1;
     }
 }
-int deQueue(circularQueue *queue, int id)
-{
+
+int deQueue(circularQueue *queue, int id){
     vProcess returnItem;
     if(isEmpty(queue)) {
         // Queue was empty
@@ -66,13 +65,17 @@ int deQueue(circularQueue *queue, int id)
             printf("Check ID: %d, id: %d\n",queue->process[i].id, id);
             if (queue->process[i].id == id){
                 // Found the element to remove
-                if (i == queue->front && i == queue->rear){
-                    queue->front = -1;
-                    queue->rear = -1;
-                }else if (i < RSIZE - 1){
-                    queue->front = i + 1;
+                if (i == queue->rear){
+                    queue->rear = queue->rear - 1;
+                    queue->process[i] = nullProcess;
                 } else {
-                    queue->front = 0;
+                    // Move everything after i to left
+                    for(int j = i; j < RSIZE; j = j + 1) {
+                        vProcess temp = queue->process[j+1];
+                        queue->process[j] = temp;
+                    }
+                    queue->process[queue->rear] = nullProcess;
+                    queue->rear = queue->rear - 1;
                 }
                 // Remove successful
                 return 1;
@@ -82,6 +85,8 @@ int deQueue(circularQueue *queue, int id)
         return -1;
     } 
 }
+
+/** Process Creation Related Operations */
 vProcess instantiateProcess(int number){
     int randomTime = rand() % 30 + 1;
     int randomArival = rand() % 50 + 1;
@@ -101,12 +106,36 @@ vProcess * createProcesses(){
     return list;
 }
 
+int removeItem(vProcess * list, int position){
+    int size = (int) sizeof(list) / sizeof(list[0]);
+    for( int i = position; i < size; i++){
+        vProcess temp = list[i+1];
+        list[i] = temp;
+    }
+    list[size - 1] = nullProcess;
+}
+
+/** Printing Scheduler Operations */
 void printProcessQueue(vProcess * list, char * pName){
     int size = (int) sizeof(list) / sizeof(list[0]);
     for(int i = 0; i < SIZE; i = i + 1){
         printf("[%s] Job Queue: [Process id: %d, Execution Time: %d, Arival Time: %d]\t", pName, list[i].id, list[i].runTime, list[i].arival);
         if ((i+1) % 2 == 0 || i == (SIZE - 1)){
             printf("\n");
+        }
+    }
+    printf("----------------\n");
+}
+
+void printReadyQueue(circularQueue * queue, char * pName){
+    if (queue->rear == -1){
+        printf("[%s] Ready Queue: Empty!\n", pName);
+    } else {
+        for(int i = 0; i < queue->rear+1; i = i + 1){
+            printf("[%s] Ready Queue: [Process id: %d, Execution Time: %d, Arival Time: %d]\t", pName, queue->process[i].id, queue->process[i].runTime, queue->process[i].arival);
+            if ((i+1) % 2 == 0 || i == queue->rear){
+                printf("\n");
+            }
         }
     }
     printf("----------------\n");
@@ -125,7 +154,7 @@ void FCFS(vProcess * processList){
     // Job queue
     vProcess * sortedList = malloc(sizeof(vProcess) * SIZE);
     // Ready queue
-    circularQueue readyList = { -1, -1, (malloc(sizeof(vProcess) * RSIZE))};
+    circularQueue readyList = { -1, (malloc(sizeof(vProcess) * RSIZE))};
     // Copy the content of processList to sortedList to avoid memory leakage!
     for(int i = 0; i < SIZE; i = i + 1){
         sortedList[i] = processList[i];
@@ -148,48 +177,54 @@ void FCFS(vProcess * processList){
         sortedList[j + 1] = key;
     }
     // Printing out the jobQueue
+    int processStack = 0;
+    //First lets populate the ready queue
+    removeItem(sortedList, 0);
     printProcessQueue(sortedList, "LTS");
+    printReadyQueue(&readyList, "LTS");
 
-    int x = enQueue(&readyList, sortedList[0]);
-    printf("Operation enque status: %d, id: %d\n", x, sortedList[0].id);
-    printf("Front %d, Rear %d\n", readyList.front, readyList.rear);
-    printf("iD: %d\n", readyList.process[0]);
 
-    x = enQueue(&readyList, sortedList[1]);
-    printf("Operation enque status: %d, id: %d\n", x, sortedList[1].id);
-    printf("Front %d, Rear %d\n", readyList.front, readyList.rear);
-    printf("iD: %d\n", readyList.process[1]);
+    // while ((isEmpty(&readyList) && processStack != SIZE) || processStack != SIZE){
 
-    x = enQueue(&readyList, sortedList[2]);
-    printf("Operation enque status: %d, id: %d\n", x, sortedList[2].id);
-    printf("Front %d, Rear %d\n", readyList.front, readyList.rear);
-    printf("iD: %d\n", readyList.process[2]);
+    //     // push a job to ready queue to be processed
+    //     if (!isFull(&readyList)){
+    //         int opr = enQueue(&readyList, sortedList[processStack]);
+    //         if (opr != 1){
+    //             printf("[Failed] Could not add process.\n\n");
+    //             exit(EXIT_FAILURE);
+    //         }
+    //         else {
+    //             removeItem(sortedList, processStack);
+    //             processStack ++;
+    //             printf("[Process] Adding a process to Ready Queue.\n\n");
+    //         }
 
-    x = enQueue(&readyList, sortedList[3]);
-    printf("Operation enque status: %d, id: %d\n", x, sortedList[3].id);
-    printf("Front %d, Rear %d\n", readyList.front, readyList.rear);
-    printf("iD: %d\n", readyList.process[3]);
+    //     }
+    //     printProcessQueue(sortedList, "LTS");
+    //     printReadyQueue(&readyList, "LTS");
 
-    x = enQueue(&readyList, sortedList[4]);
-    printf("Operation enque status: %d, id: %d\n", x, sortedList[4].id);
-    printf("Front %d, Rear %d\n", readyList.front, readyList.rear);
-    printf("iD: %d\n", readyList.process[4]);
-    //LIMIT
-    x = enQueue(&readyList, sortedList[5]);
-    printf("Operation enque status: %d, id: %d\n", x, sortedList[5].id);
-    printf("Front %d, Rear %d\n", readyList.front, readyList.rear);
-    printf("iD: %d\n", readyList.process[5]);
-
-    x = deQueue(&readyList, 52);
-    printf("Operation dequeue status: %d, id: %d\n", x, 52);
-    printf("Front %d, Rear %d\n", readyList.front, readyList.rear);
+    //     for(int i = 0; i < (readyList.rear + 1); i++){
+    //         readyList.process[i].runTime--;
+    //         if (readyList.process[i].runTime <= 0){
+    //             int opr = deQueue(&readyList, readyList.process[i].id);
+    //             if (opr != 1){
+    //             printf("[Failed] Could not remove process.\n\n");
+    //             exit(EXIT_FAILURE);
+    //             }
+    //             else {
+    //                 processStack ++;
+    //                 printf("[Process] Removed a process from Ready Queue.\n\n");
+    //             }
+    //         }
+    //     }
+    // }
 }
 
 void main(){
     vProcess * list = createProcesses();
     pthread_t thread1, thread2;
 
-    printf("Validating\n");
+    printf("\nValidating\n");
     for (int i = 0; i < SIZE; i = i + 1)
     {
         if (list[i].id == i && list[i].runTime < 31 && list[i].runTime > 0){
@@ -199,7 +234,7 @@ void main(){
             exit(EXIT_FAILURE);
         }
     }
-    printf("\n");
+    printf("\nAll Good! \n\n");
 
     FCFS(list);
 }
