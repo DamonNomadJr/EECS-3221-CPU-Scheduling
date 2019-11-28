@@ -19,5 +19,6 @@ Handles the execution of _n_ processes according to their arival time. It execut
 To execute (On Linux Only) download the **main.c** file and use the following command within folder when that file is placed:
 
 ```Bash
-gcc main.c -o run
+$ gcc main.c -o run
+$ ./run
 ```
