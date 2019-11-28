@@ -6,6 +6,8 @@
 
 **Description:** Implementation of CPU scheduler.
 
+**Assignment Full Description:** [Link to PDF](captures/assignment-info.pdf)
+
 # Parts:
 ## FCFS Scheduler:
 Handles the execution of _n_ processes according to their arival time. It executes 5 process at a time. The following gif shows a FCFS implementation in action with 100 processes:
