@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <string.h>
+#include <unistd.h>
 
 //Choose how many processes to create
 #define SIZE 100
@@ -19,12 +20,12 @@ typedef struct{
     vProcess * process;
 } circularQueue;
 
-static vProcess nullProcess = {-1, -1};
+static vProcess nullProcess = {-1, -1, -1};
 
 
 /** Queue Related Operations */
-int isFull(circularQueue * queue){
-    if( queue->rear == RSIZE-1) {
+int isFull(circularQueue * queue, int size){
+    if( queue->rear == size-1) {
         // It's full
         return 1;
     } else {
@@ -43,8 +44,8 @@ int isEmpty(circularQueue * queue){
     }
 }
 
-int enQueue(circularQueue * queue, vProcess process){
-    if (isFull(queue)){
+int enQueue(circularQueue * queue, vProcess process, int size){
+    if (isFull(queue, size)){
         // Couldn't add the element
         return 0;
     } else {
@@ -55,14 +56,13 @@ int enQueue(circularQueue * queue, vProcess process){
     }
 }
 
-int deQueue(circularQueue *queue, int id){
+int deQueue(circularQueue *queue, int id, int size){
     vProcess returnItem;
     if(isEmpty(queue)) {
         // Queue was empty
         return 0;
     } else {
-        for (int i = 0; i < RSIZE; i = i + 1){
-            printf("Check ID: %d, id: %d\n",queue->process[i].id, id);
+        for (int i = 0; i < size; i = i + 1){
             if (queue->process[i].id == id){
                 // Found the element to remove
                 if (i == queue->rear){
@@ -70,12 +70,12 @@ int deQueue(circularQueue *queue, int id){
                     queue->process[i] = nullProcess;
                 } else {
                     // Move everything after i to left
-                    for(int j = i; j < RSIZE; j = j + 1) {
+                    for(int j = i; j < size; j = j + 1) {
                         vProcess temp = queue->process[j+1];
                         queue->process[j] = temp;
                     }
                     queue->process[queue->rear] = nullProcess;
-                    queue->rear = queue->rear - 1;
+                    queue->rear --;
                 }
                 // Remove successful
                 return 1;
@@ -106,20 +106,11 @@ vProcess * createProcesses(){
     return list;
 }
 
-int removeItem(vProcess * list, int position){
-    int size = (int) sizeof(list) / sizeof(list[0]);
-    for( int i = position; i < size; i++){
-        vProcess temp = list[i+1];
-        list[i] = temp;
-    }
-    list[size - 1] = nullProcess;
-}
-
 /** Printing Scheduler Operations */
-void printProcessQueue(vProcess * list, char * pName){
+void printList(vProcess * list, char * pName){
     int size = (int) sizeof(list) / sizeof(list[0]);
     for(int i = 0; i < SIZE; i = i + 1){
-        printf("[%s] Job Queue: [Process id: %d, Execution Time: %d, Arival Time: %d]\t", pName, list[i].id, list[i].runTime, list[i].arival);
+        printf("%s [Process id: %d, Execution Time: %d, Arival Time: %d]\t", pName, list[i].id, list[i].runTime, list[i].arival);
         if ((i+1) % 2 == 0 || i == (SIZE - 1)){
             printf("\n");
         }
@@ -129,10 +120,10 @@ void printProcessQueue(vProcess * list, char * pName){
 
 void printReadyQueue(circularQueue * queue, char * pName){
     if (queue->rear == -1){
-        printf("[%s] Ready Queue: Empty!\n", pName);
+        printf("%s: Empty!\n", pName);
     } else {
         for(int i = 0; i < queue->rear+1; i = i + 1){
-            printf("[%s] Ready Queue: [Process id: %d, Execution Time: %d, Arival Time: %d]\t", pName, queue->process[i].id, queue->process[i].runTime, queue->process[i].arival);
+            printf("%s: [Process id: %d, Execution Time: %d, Arival Time: %d]\t", pName, queue->process[i].id, queue->process[i].runTime, queue->process[i].arival);
             if ((i+1) % 2 == 0 || i == queue->rear){
                 printf("\n");
             }
@@ -151,10 +142,14 @@ void printReadyQueue(circularQueue * queue, char * pName){
  * to sort the list by the arrival time.
  */
 void FCFS(vProcess * processList){
-    // Job queue
+    // List of jobs
     vProcess * sortedList = malloc(sizeof(vProcess) * SIZE);
+
     // Ready queue
-    circularQueue readyList = { -1, (malloc(sizeof(vProcess) * RSIZE))};
+    circularQueue readyList = {-1, (malloc(sizeof(vProcess) * RSIZE))};
+    // Job queue
+    circularQueue jobList = {-1 , (malloc(sizeof(vProcess) * SIZE))};
+
     // Copy the content of processList to sortedList to avoid memory leakage!
     for(int i = 0; i < SIZE; i = i + 1){
         sortedList[i] = processList[i];
@@ -177,47 +172,69 @@ void FCFS(vProcess * processList){
         sortedList[j + 1] = key;
     }
     // Printing out the jobQueue
-    int processStack = 0;
-    //First lets populate the ready queue
-    removeItem(sortedList, 0);
-    printProcessQueue(sortedList, "LTS");
-    printReadyQueue(&readyList, "LTS");
+    printf("List of Processes to be queued:\n");
+    printList(sortedList, "[LTS] Process");
 
+    for(int i = 0; i < 8; i++){
+        printf(".");
+        sleep(1);
+        if (i == 7) printf("\n");
+    }
 
-    // while ((isEmpty(&readyList) && processStack != SIZE) || processStack != SIZE){
+    //Time initial to 0
+    //Each itteration of while loop incriments the time by 1
+    int time = 0;
+    int pCount = 0;
+    int condition = 1;
 
-    //     // push a job to ready queue to be processed
-    //     if (!isFull(&readyList)){
-    //         int opr = enQueue(&readyList, sortedList[processStack]);
-    //         if (opr != 1){
-    //             printf("[Failed] Could not add process.\n\n");
-    //             exit(EXIT_FAILURE);
-    //         }
-    //         else {
-    //             removeItem(sortedList, processStack);
-    //             processStack ++;
-    //             printf("[Process] Adding a process to Ready Queue.\n\n");
-    //         }
+    do {
+        system("@cls||clear");
+        printf("Time elapsed: %d\t Processes arrived: %d\t Jobs Stored: %d \n\n", time, pCount - 1, jobList.rear);
+        while (!isFull(&readyList, RSIZE) && !isEmpty(&jobList)){
+            int state_0 = enQueue(&readyList, jobList.process[0], RSIZE);
+            if (state_0 != 1){
+                printf("[Failed] Could not add process to read queue.\n\n");
+                exit(EXIT_FAILURE);
+            }
+            else {
+                int state_0_1 = deQueue(&jobList, jobList.process[0].id, SIZE);
+                if (state_0 != 1){
+                    printf("[Failed] Could not remove a process from job queue.\n\n");
+                    exit(EXIT_FAILURE);
+                }
+            }
+        }
 
-    //     }
-    //     printProcessQueue(sortedList, "LTS");
-    //     printReadyQueue(&readyList, "LTS");
+        while (!isFull(&jobList, SIZE) && sortedList[pCount].arival == time){
+            int state_1 = enQueue(&jobList, sortedList[pCount], SIZE);
+            if (state_1 != 1){
+                printf("[Failed] Could not add process.\n\n");
+                exit(EXIT_FAILURE);
+            } else {
+                pCount ++;
+            }
+        }
+        
+        printReadyQueue(&jobList, "[LTS] Job Queue");
+        printReadyQueue(&readyList, "[LTS] Ready Queue");
 
-    //     for(int i = 0; i < (readyList.rear + 1); i++){
-    //         readyList.process[i].runTime--;
-    //         if (readyList.process[i].runTime <= 0){
-    //             int opr = deQueue(&readyList, readyList.process[i].id);
-    //             if (opr != 1){
-    //             printf("[Failed] Could not remove process.\n\n");
-    //             exit(EXIT_FAILURE);
-    //             }
-    //             else {
-    //                 processStack ++;
-    //                 printf("[Process] Removed a process from Ready Queue.\n\n");
-    //             }
-    //         }
-    //     }
-    // }
+        for(int i = 0; i < (readyList.rear + 1); i++){
+            readyList.process[i].runTime--;
+            if (readyList.process[i].runTime <= 0){
+                int state_2 = deQueue(&readyList, readyList.process[i].id, RSIZE);
+                if (state_2 != 1){
+                printf("[Failed] Could not remove process.\n\n");
+                exit(EXIT_FAILURE);
+                }
+            }
+        }
+        // increase time
+        time ++;
+        sleep(1);
+        if (isEmpty(&jobList) && isEmpty(&readyList) && time > 100){
+            condition  = 0;
+        }
+    } while (condition);
 }
 
 void main(){
