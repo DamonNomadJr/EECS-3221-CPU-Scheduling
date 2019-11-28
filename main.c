@@ -15,13 +15,14 @@ typedef struct{
 } vProcess;
 
 typedef struct{
+    int front;
     int rear;
     vProcess * process;
 } circularQueue;
 
 int isFull(circularQueue * queue){
-    printf("Is Full %d\n", queue->rear);
-    if( (queue->rear == RSIZE-1)) {
+    printf("Is Full %d, %d\n", queue->front, queue->rear);
+    if( (queue->front == queue->rear + 1) || (queue->front == 0 && queue->rear == RSIZE-1)) {
         // It's full
         return 1;
     } else {
@@ -31,7 +32,7 @@ int isFull(circularQueue * queue){
 }
 
 int isEmpty(circularQueue * queue){
-    if(queue->rear == -1) { 
+    if(queue->front == -1) { 
         // It's empty
         return 1;
     } else {
@@ -45,7 +46,10 @@ int enQueue(circularQueue * queue, vProcess process){
         // Couldn't add the element
         return 0;
     } else {
-        queue->rear = queue->rear + 1;
+        if (queue->front == -1) {
+            queue->front = 0;
+        }
+        queue->rear = (queue->rear + 1) % RSIZE;
         queue->process[queue->rear] = process;
         // Added the element
         return 1;
@@ -62,8 +66,9 @@ int deQueue(circularQueue *queue, int id)
             printf("Check ID: %d, id: %d\n",queue->process[i].id, id);
             if (queue->process[i].id == id){
                 // Found the element to remove
-                if (i == queue->rear){
-                    queue->rear = queue->rear - 1;
+                if (i == queue->front && i == queue->rear){
+                    queue->front = -1;
+                    queue->rear = -1;
                 }else if (i < RSIZE - 1){
                     queue->front = i + 1;
                 } else {
@@ -175,8 +180,8 @@ void FCFS(vProcess * processList){
     printf("Front %d, Rear %d\n", readyList.front, readyList.rear);
     printf("iD: %d\n", readyList.process[5]);
 
-    x = deQueue(&readyList, 82);
-    printf("Operation dequeue status: %d, id: %d\n", x, 82);
+    x = deQueue(&readyList, 52);
+    printf("Operation dequeue status: %d, id: %d\n", x, 52);
     printf("Front %d, Rear %d\n", readyList.front, readyList.rear);
 }
 
