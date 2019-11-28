@@ -5,9 +5,9 @@
 #include <unistd.h>
 
 //Choose how many processes to create
-#define SIZE 100
+int SIZE = 100;
 //Choose ready queue size
-#define RSIZE 5
+int RSIZE = 5;
 
 typedef struct{
     int id;
@@ -95,12 +95,10 @@ vProcess instantiateProcess(int number){
 }
 
 vProcess * createProcesses(){
-    printf("Constructing %d vPs\n", SIZE);
     vProcess * list = malloc(sizeof(vProcess) * SIZE);
     for (int i = 0; i < SIZE;  i = i + 1)
     {
         list[i] = instantiateProcess(i);
-        printf("Consructing vP #%d, runtime: %d\n", list[i].id, list[i].runTime);
     }
 
     return list;
@@ -110,7 +108,7 @@ vProcess * createProcesses(){
 void printList(vProcess * list, char * pName){
     int size = (int) sizeof(list) / sizeof(list[0]);
     for(int i = 0; i < SIZE; i = i + 1){
-        printf("%s [Process id: %d, Execution Time: %d, Arival Time: %d]\t", pName, list[i].id, list[i].runTime, list[i].arival);
+        printf("%s [Process id: %02d, Execution Time: %02d, Arival Time: %02d]\t", pName, list[i].id, list[i].runTime, list[i].arival);
         if ((i+1) % 2 == 0 || i == (SIZE - 1)){
             printf("\n");
         }
@@ -123,7 +121,7 @@ void printReadyQueue(circularQueue * queue, char * pName){
         printf("%s: Empty!\n", pName);
     } else {
         for(int i = 0; i < queue->rear+1; i = i + 1){
-            printf("%s: [Process id: %d, Execution Time: %d, Arival Time: %d]\t", pName, queue->process[i].id, queue->process[i].runTime, queue->process[i].arival);
+            printf("%s: [Process id: %02d, Execution Time: %02d, Arival Time: %02d]\t", pName, queue->process[i].id, queue->process[i].runTime, queue->process[i].arival);
             if ((i+1) % 2 == 0 || i == queue->rear){
                 printf("\n");
             }
@@ -189,7 +187,7 @@ void FCFS(vProcess * processList){
 
     do {
         system("@cls||clear");
-        printf("Time elapsed: %d\t Processes arrived: %d\t Jobs Stored: %d \n\n", time, pCount - 1, jobList.rear);
+        printf("Time elapsed: %03d\t Processes arrived: %02d\t Jobs Stored: %02d \n\n", time, pCount - 1, jobList.rear + 1);
         while (!isFull(&readyList, RSIZE) && !isEmpty(&jobList)){
             int state_0 = enQueue(&readyList, jobList.process[0], RSIZE);
             if (state_0 != 1){
@@ -237,21 +235,58 @@ void FCFS(vProcess * processList){
     } while (condition);
 }
 
-void main(){
-    vProcess * list = createProcesses();
+int main(int argc, char **argv){
+    vProcess * list;
     pthread_t thread1, thread2;
 
+    if (!strcmp(argv[1], "--help") || !strcmp(argv[1], "-h")){
+        printf("CPU Scheduling design by Mehrzad B.\n");
+        printf("For more info please visit: https://github.com/DamonNomadJr/EECS3221-CPU-Scheduling\n");
+        printf("Arguments:\n");
+        printf("\t--help | -h:\n");
+        printf("\t\tOpens help\n\n");
+        printf("\t--jobs | -j [value in int]:\n");
+        printf("\t\tChange the number of jobs to be processed. Default 100\n\n");
+        printf("\t--ready | -r [value in int]:\n");
+        printf("\t\tChange the # of processes to execute at a time. Default 5\n\n");
+        return 0;
+    }
+
+    if (argc > 0){
+        for (int i = 1; i < argc; i++){
+            printf("Consumed %s\n", argv[i]);
+            if(!strcmp(argv[i], "--ready") || !strcmp(argv[i], "-r")){
+                if (argv[i+1] != NULL) {
+                    printf("Ready to be set %s\n", argv[i+1]);
+                    RSIZE = atoi(argv[i+1]);
+                } else {
+                    exit(EXIT_FAILURE);
+                }
+            }
+            else if(!strcmp(argv[i], "--jobs") || !strcmp(argv[i], "-j")){
+                if (argv[i+1] != NULL) {
+                    printf("Jobs to be set %s\n", argv[i+1]);
+                    SIZE = atoi(argv[i+1]);
+                } else {
+                    exit(EXIT_FAILURE);
+                }
+            }
+        }
+    }
+
+    printf("Creating %d jobs and %d is Ready size\n", SIZE, RSIZE);
+
+    list = createProcesses();
     printf("\nValidating\n");
     for (int i = 0; i < SIZE; i = i + 1)
     {
         if (list[i].id == i && list[i].runTime < 31 && list[i].runTime > 0){
             printf(".");
         } else {
-        printf("\nError: Unexpected Values!\n id: %d \truntime:%d \tExpected: %d\n", list[i].id, list[i].runTime, i);
+        printf("\nError: Unexpected Values!\n id: %02d \truntime:%02d \tExpected: %02d\n", list[i].id, list[i].runTime, i);
             exit(EXIT_FAILURE);
         }
     }
+    // int err = pthread_create(&thread1, NULL, FCFS, (void*) list);
     printf("\nAll Good! \n\n");
-
-    FCFS(list);
 }
