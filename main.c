@@ -208,7 +208,7 @@ void * FCFS(void * list){
     int condition = 1;
 
     do {
-        system("@cls||clear");
+        // system("@cls||clear");
         printf("Time elapsed: %03d\t Processes arrived: %02d\t Jobs Stored: %02d \n\n", time, pCount - 1, globalJobList->rear + 1);
         pthread_mutex_lock(&lock); 
         testMessage("LOCKING MUTEX");
@@ -244,7 +244,7 @@ void * FCFS(void * list){
 
         // increase time
         time ++;
-        sleep(1);
+        sleep(0.2);
         if (isEmpty(globalJobList) && isEmpty(globalReadyList) && time > 100){
             condition  = 0;
         }
@@ -252,8 +252,24 @@ void * FCFS(void * list){
 }
 
 void * SJF(){
+    printf("INIT SJF\n");
     do {
-        
+        if (!isEmpty(globalReadyList)){
+            pthread_mutex_lock(&lock);
+            testMessage("SJF Lock");
+            int tempID = globalReadyList->process[0].id;
+            int tempTIME = globalReadyList->process[0].runTime;
+            for(int i = 1; i < globalReadyList->rear + 1; i++){
+                if (tempTIME > globalReadyList->process[i].runTime){
+                    int tempID = globalReadyList->process[i].id;
+                    int tempTIME = globalReadyList->process[i].runTime;
+                }
+            }
+            printf("[DUMPING]: Process ID: %02d\tRuntime: %02d\n", tempID, tempTIME);
+            deQueue(globalReadyList, tempID, RSIZE);
+            testMessage("SJF UNLOCKS");
+            pthread_mutex_unlock(&lock);
+        }
     } while (1);
 }
 
@@ -308,8 +324,12 @@ int main(int argc, char **argv){
     circularQueue tempJ = {-1, malloc(sizeof(vProcess ) * SIZE)};
     globalJobList = &tempJ;
 
+    pthread_create(&thread2, NULL, SJF, NULL);
+    pthread_join(thread2, NULL);
+    
     pthread_create(&thread1, NULL, FCFS, list);
     pthread_join(thread1, NULL);
+    
     // pthread_create(&tid, NULL, FCFS, (void *)list);
     // pthread_join(tid, NULL);
     // int err = pthread_create(&thread1, NULL, FCFS, (void*) list);
