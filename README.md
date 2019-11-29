@@ -16,9 +16,21 @@ Handles the execution of _n_ processes according to their arival time. It execut
 
 # Deployment
 
+## Todeploy
+
 To execute (On Linux Only) download the **main.c** file and use the following command within folder when that file is placed:
 
 ```console
-$ gcc main.c -o run
+$ gcc -pthread main.c -o run
 $ ./run
 ```
+
+## Arguments
+
++ (--help | -h): Opens help
++ (--jobs | -j) [value in int]: Change the number of jobs to be processed. Default 100
++ (--ready | -r) [value in int]: Change the # of processes to execute at a time. Default 5
++ (--test | -t):	Runs with test messages
+
+
+
