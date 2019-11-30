@@ -31,7 +31,7 @@ To implement the short term scheduler I have used the shortest jobs first algori
 ## Final example:
 I have put many options from setting the random time to setting the wait before execution of schedulers. Here is a very quick peek of an instance of code where I have executed the scheduler algorithm:
 
-``console
+```console
 $ ./run -j 5
 Jobs to be set 5
 Creating 5 jobs and 5 is Ready size
@@ -533,12 +533,12 @@ JOB LIST:: Empty!
 READY LIST:: Empty!
 ......................
 Execution of jobs successfull
-``
+```
 
 ## Problems
 When running on terminal I have some overhead issues, as the printf statesments overlaped and after the _Execution of jobs successfull_, I would still recieve a streame of Job and Ready Queue:
 
-``console
+```console
 ......................
 READY LIST:: Empty!
 ......................
@@ -551,7 +551,7 @@ Execution of jobs success full
 ......................
 [LTS] Ready Queue: Empty!
 ......................
-``
+```
 
 I believe this is a printf stream issue, and will try to find a way around it to fix it.
 
