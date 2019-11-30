@@ -9,9 +9,7 @@
 bool TEST = false;
 int TIME = 0;
 int PROCESS_COUNT = 0;
-bool CONSUMED_PROCESSES = false;
-bool CONSUMING = false;
-
+int CONSUMED_PROCESSES = 0;
 //Default process size
 int SIZE = 100;
 //Default ready queue size
@@ -210,7 +208,6 @@ void printList(vProcess * list, char * text){
  * Prints the given queue on the screen with given pre-text.
  */
 void printQueue(circularQueue * queue, char * text){
-    printf("----------------\n");
     if (queue->rear == -1){
         printf("%s: Empty!\n", text);
     } else {
@@ -242,7 +239,7 @@ void * FCFS(void * list){
     pthread_mutex_lock(&lock);
     testMessage("[LTS] Locking mutext");
 
-    if (!isEmpty(globalJobList) && !isFull(globalReadyList)){
+    if (!isEmpty(globalJobList) && !isFull(globalReadyList) && CONSUMED_PROCESSES < SIZE){
         
         int state_0 = enQueue(globalReadyList, globalJobList->process[0]);
         if (state_0 != 1){
@@ -289,8 +286,7 @@ void * SJF(){
     pthread_mutex_lock(&lock);
     testMessage("[STS] Locking mutext");
 
-    if (!isEmpty(globalReadyList)){
-        CONSUMING = true;
+    if (!isEmpty(globalReadyList) && CONSUMED_PROCESSES < SIZE){
         vProcess tempProcess = globalReadyList->process[0];
 
         for(int i = 1; i < globalReadyList->rear + 1; i++){
@@ -309,7 +305,7 @@ void * SJF(){
 
         tempProcess.runTime = tempProcess.runTime - 2;
         if (tempProcess.runTime <= 0){
-
+            CONSUMED_PROCESSES ++ ;
         } else {
             int state_1 = enQueue(globalReadyList, tempProcess);
             if (state_1 != 1){
@@ -320,7 +316,6 @@ void * SJF(){
                 printQueue(globalReadyList, "[STS]: Ready Queue");
             }
         }
-        CONSUMING = true;
     }
     testMessage("[STS] Unlocks mutex");
     pthread_mutex_unlock(&lock);
@@ -352,7 +347,6 @@ int main(int argc, char **argv){
             }
         }
         for (int i = 1; i < argc; i++){
-            printf("Consumed %s\n", argv[i]);
             if(!strcmp(argv[i], "--ready") || !strcmp(argv[i], "-r")){
                 if (argv[i+1] != NULL) {
                     printf("Ready to be set %s\n", argv[i+1]);
@@ -435,16 +429,14 @@ int main(int argc, char **argv){
     {
         printf("Mutex init failed\n");
         exit(EXIT_FAILURE);
-    }    
+    }
 
     sleep(SLEEP_TIME);
-    system("@cls||clear");
-
     //Keep creating process stacks
     while(true) {
         pthread_create(&thread1, NULL, FCFS, list);
         pthread_create(&thread2, NULL, SJF, NULL);
-        if(isEmpty(globalJobList) && isEmpty(globalReadyList) && PROCESS_COUNT >= SIZE - 1 && CONSUMING == false){
+        if(CONSUMED_PROCESSES == SIZE){
             // pthread_cancel(thread1);
             // pthread_cancel(thread2);
             pthread_mutex_destroy(&lock);
