@@ -66,9 +66,11 @@ All Good!
 ----------------
 [LTS] Ready Queue: [Process id: 04, Execution Time: 08, Arrival Time: 02]	
 ----------------
+```
 
 ...
 
+```console
 [STS]: Ready Queue: Empty!
 ----------------
 [STS]: Added Process ID: 01	Runtime: 02	Arrival: 26
