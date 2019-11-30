@@ -17,7 +17,7 @@ int RSIZE = 5;
 //Default process max random time
 int RAND_TIME = 30;
 //Default process max random time
-int RAND_ARRIVAL = 30;
+int RAND_ARRIVAL = 50;
 //Sleep/wait time
 int SLEEP_TIME = 5;
 
@@ -340,7 +340,7 @@ int main(int argc, char **argv){
                 printf("\t--time | -s [value in int]:\n");
                 printf("\t\tSets random run time for a process to max of a given time. Defult 30\n\n");
                 printf("\t--arrival | -a [value in int]:\n");
-                printf("\t\tSets random arrival time for a process to max of a given time. Defult 30\n\n");
+                printf("\t\tSets random arrival time for a process to max of a given time. Defult 50\n\n");
                 printf("\t--wait | -w [value in int]:\n");
                 printf("\t\tWait duration before execution of processes. Defult 10\n\n");
                 exit(EXIT_SUCCESS);
@@ -442,7 +442,7 @@ int main(int argc, char **argv){
             pthread_mutex_destroy(&lock);
             printQueue(globalJobList, "JOB LIST:");
             printQueue(globalReadyList, "READY LIST:");
-            printf("Execution of jobs success full\n");
+            printf("Execution of jobs successfull\n");
             exit(EXIT_SUCCESS);
         }
     }
