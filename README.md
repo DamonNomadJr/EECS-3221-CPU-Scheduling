@@ -41,15 +41,15 @@ Validating
 All Good! 
 
 [LTS] Job Queue: Empty!
-----------------
+......................
 [LTS] Ready Queue: Empty!
-----------------
+......................
 [LTS] Job Queue: Empty!
-----------------
+......................
 [LTS] Ready Queue: Empty!
-----------------
+......................
 [LTS] Job Queue: [Process id: 04, Execution Time: 10, Arrival Time: 02]	
-----------------
+......................
 [LTS] Ready Queue: Empty!
 ----------------
 [LTS] Job Queue: Empty!
