@@ -98,7 +98,7 @@ Execution of jobs successfull
 
 ## A nother live action
 
-![](/captures/Live Version.gif)
+![](/captures/Live-Version.gif)
 
 ## Problems
 When running on terminal I have some overhead issues, as the printf statesments overlaped and after the _Execution of jobs successfull_, I would still recieve a streame of Job and Ready Queue:
