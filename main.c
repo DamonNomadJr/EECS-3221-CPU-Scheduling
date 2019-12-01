@@ -9,7 +9,7 @@
 bool TEST = false;
 int TIME = 0;
 int PROCESS_COUNT = 0;
-int CONSUMED_PROCESSES = 0;
+int CONSUMED_PROCESSES = -1;
 //Default process size
 int SIZE = 100;
 //Default ready queue size
@@ -286,7 +286,7 @@ void * SJF(){
     pthread_mutex_lock(&lock);
     testMessage("[STS] Locking mutext");
 
-    if (!isEmpty(globalReadyList) && CONSUMED_PROCESSES < SIZE){
+    if (!isEmpty(globalReadyList) && CONSUMED_PROCESSES <= SIZE){
         vProcess tempProcess = globalReadyList->process[0];
 
         for(int i = 1; i < globalReadyList->rear + 1; i++){
@@ -316,6 +316,7 @@ void * SJF(){
                 printQueue(globalReadyList, "[STS]: Ready Queue");
             }
         }
+        if (TEST) printf("\x1b[32mCONSUMED PROCESSES: %d SIZE: %d\x1b[0m\n", CONSUMED_PROCESSES, SIZE);
     }
     testMessage("[STS] Unlocks mutex");
     pthread_mutex_unlock(&lock);
@@ -336,7 +337,7 @@ int main(int argc, char **argv){
                 printf("\t--ready | -r [value in int]:\n");
                 printf("\t\tChange the # of processes to execute at a time. Default 5\n\n");
                 printf("\t--test | -t:\n");
-                printf("\t\tChange the # of processes to execute at a time. Default 5\n\n");
+                printf("\t\tRuns in test mode with test texts\n\n");
                 printf("\t--time | -s [value in int]:\n");
                 printf("\t\tSets random run time for a process to max of a given time. Defult 30\n\n");
                 printf("\t--arrival | -a [value in int]:\n");
@@ -436,9 +437,9 @@ int main(int argc, char **argv){
     while(true) {
         pthread_create(&thread1, NULL, FCFS, list);
         pthread_create(&thread2, NULL, SJF, NULL);
-        if(CONSUMED_PROCESSES == SIZE){
-            // pthread_cancel(thread1);
-            // pthread_cancel(thread2);
+        if(CONSUMED_PROCESSES >= SIZE){
+            pthread_cancel(thread1);
+            pthread_cancel(thread2);
             pthread_mutex_destroy(&lock);
             printQueue(globalJobList, "JOB LIST:");
             printQueue(globalReadyList, "READY LIST:");
