@@ -143,7 +143,7 @@ $ ./run
 + (--wait | -w) [value in int]: Wait duration before execution of processes. Defult 10
 
 # Submission files
-+ (mian.c)[main.c]
-+ (output.txt)[captures/final-version.txt]
++ [mian.c](main.c)
++ [output.txt](captures/final-version.txt)
 
 
