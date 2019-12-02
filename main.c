@@ -237,6 +237,7 @@ void * FCFS(void * list){
         
     //Critical Section
     pthread_mutex_lock(&lock);
+    printf("[Kernel] Long Term Scheduler Involked\n");
     testMessage("[LTS] Locking mutext");
 
     if (!isEmpty(globalJobList) && !isFull(globalReadyList) && CONSUMED_PROCESSES < SIZE){
@@ -247,12 +248,17 @@ void * FCFS(void * list){
             exit(EXIT_FAILURE);
         }
         else {
+            printf("[LTS] Process %02d has been removed from Job Queue and is being added to ready Queue.\n", globalJobList->process[0].id);
             int state_0_1 = deQueue(globalJobList, globalJobList->process[0].id, SIZE);
             if (state_0 != 1){
                 testMessage("[Failed]:[LTS] Could not remove a process from job queue.");
                 exit(EXIT_FAILURE);
             }
+            
         }
+    }
+    if(isFull(globalJobList)){
+        printf("[LTS] Ready Queue is full. Cannot add more.\n");
     }
 
     //Rest of operation.
@@ -284,6 +290,7 @@ void * FCFS(void * list){
 void * SJF(){
 
     pthread_mutex_lock(&lock);
+    printf("[Kernel] Short Term Scheduler Involked\n");
     testMessage("[STS] Locking mutext");
 
     if (!isEmpty(globalReadyList) && CONSUMED_PROCESSES <= SIZE){
@@ -306,6 +313,7 @@ void * SJF(){
         tempProcess.runTime = tempProcess.runTime - 2;
         if (tempProcess.runTime <= 0){
             CONSUMED_PROCESSES ++ ;
+            printf("[STS]: Process ID: %02d has been terminated\n", tempProcess.id);
         } else {
             int state_1 = enQueue(globalReadyList, tempProcess);
             if (state_1 != 1){
