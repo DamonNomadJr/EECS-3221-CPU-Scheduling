@@ -94,11 +94,12 @@ READY LIST:: Empty!
 Execution of jobs successfull
 ```
 
-[Full file link](/captures/sample.txt)
+[Link to this version](/captures/sample.txt)
 
 ## A nother live action
 
-![](/captures/Live Version.gif)
+![](/captures/Live-Version.gif)
+[Link to output file](/captures/sample2.txt)
 
 ## Problems
 When running on terminal I have some overhead issues, as the printf statesments overlaped and after the _Execution of jobs successfull_, I would still recieve a streame of Job and Ready Queue:
